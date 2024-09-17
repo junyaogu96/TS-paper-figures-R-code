@@ -1,0 +1,784 @@
+---
+title: "R Markdown file for figures in the TS paper"
+author: "Junyao Gu"
+date: "9/16/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+### library summary
+```{r results='hide', message=FALSE, warning=FALSE}
+library(RColorBrewer) #to set color palette for heatmap
+library(gplots) #to use heatmap.2
+library(ggplot2)#to use ggplot 
+library(vegan) # to make Mantel correlogram, CCA, and so on
+library(ape) #to use read.dna function
+library(plyr) # to use ddply 
+library(Mfuzz) # to do soft clustering
+library(caret) #for doing the min-max scaling
+library(dplyr) #to use tibble to edit data frame 
+```
+
+```{r color palette for heatmaps}
+col_RduBu <- colorRampPalette(rev(brewer.pal(11, "RdBu")))(256) #set the color palette for heatmaps
+```
+
+#### Note: figures generated in this R markdown file were further processed in Adobe Illustrator for better visualisations (e.g., change font colors, line colors, etc.).
+
+### Figure 1. Seasonality of abundant marine microbes at the Piver’s Island Coastal Observatory at different phylogenetic resolutions.
+#### Figure 1A. 2011-2020 Flow cytometric based abundances of Synechococcus, non-phycoerythrin containing picocyanobacteria, and “heterotrophic bacteria”= total prokaryotes- cyanobacteria.
+```{r Figure_1A}
+#input data 
+data_12years <- read.csv("fcm 12 years.csv") 
+
+#plot synechococcus on the figure
+plot(data_12years$decimalyears,data_12years$SynechococcusMEAN, log="y", type = "b", ylim=c(1e+01,2e+07), col = "purple",  xlab = "", ylab = "Abundance (cells/mL)", lty = 1, lwd = 1.3, cex.lab = 1.4,  cex.axis = 1.3) 
+
+#add picocyanobaceria data on the plot
+lines(data_12years$decimalyears,data_12years$picocyanobacteriaMEAN,log="y",  col = "dark green", type = "b", lty = 1,  lwd = 1.3)
+
+#add heterotrophic bacteria data on the plot
+lines(data_12years$decimalyears,data_12years$heterotrophic.bacteria,  log="y", col = "black", type = "b", lty = 1, lwd = 1.3)
+
+#add a legend to the plot and set legend lty
+legend("bottomright", legend = c("Synechococcus", "Picocyanobacteria","Heterotrophic Bacteria"), col = c("purple", "dark green","black"), lty = 1, cex = 1)
+```
+#### Figure 1B. 2011-2013 Flow cytometric based abundances of Synechococcus and non-phycoerythrin containing picocyanobacteria.
+```{r Figure_1B}
+#input data 
+data_3years <- read.csv("fcm 3 years.csv")
+
+#plot synechococcus on the figure
+plot(data_3years$decimalyears,data_3years$SynechococcusMEAN, log = "y", type = "b", ylim=c(1e+01,1e+07), col = "purple",  xlab = "",  ylab = "Abundance (cells/mL)", lty = 1, lwd = 1.3, cex.lab = 1.4, cex.axis = 1.3)
+
+#add cyanobacteria data on the plot
+lines(data_3years$decimalyears,data_3years$picocyanobacteriaMEAN, log = "y", col = "dark green", type = "b", lty = 1, lwd = 1.3)
+
+#add a legend to the plot and set legend lty
+legend("topleft", legend = c("Synechococcus", "picocyanobacteria"), col = c("purple", "dark green"), lty = 1, cex = 1)
+```
+
+#### Figure 1E. 2011-2013 Flow cytometric based abundances of “heterotrophic bacteria”= total prokaryotes- cyanobacteria.
+```{r Figure_1E}
+#plot heterotrophic bacteria data
+plot(data_3years$decimalyears, data_3years$heterotrophic.bacteria, log = "y", type = "b", col = "black", ylim=c(8e+05,9e+06), xlab = "", ylab = "Abundance (cells/mL)", lty = 1, lwd = 1.3, cex.lab = 1.4, cex.axis = 1.3) 
+
+#Add a legend to the plot and set legend lty
+legend("topright", legend = c("Bacteria"), col = "black", lty = 1, cex = 1)
+```
+
+#### Figure 1C. Heatmap of log2 (absolute abundance+1; cells mL-1) of cyanobacteria OTUs from 2011-2013.
+```{r Figure_1C, fig.width=20, fig.height=12}
+#input data 
+cotu <- read.csv("cotu by tree order.csv", row.names=1) #Cyanobacteria OTU absolute abundance data ranked by phylogenetic tree order
+#log transform the data
+cotu_log <- log2(cotu+1)
+
+#plot the figure
+library(gplots) #to use heatmap.2
+heatmap.2(as.matrix(cotu_log), main = "Heatmap of Cyano OTUs (phylogeny)", xlab = "Samples", ylab = "OTUs", cexCol =0.5, cexRow = 0.5, keysize = 1, lhei = c(1,7), key.xlab = "Log2 (absolute abundance+1), cells/mL", notecol="black",  density.info="none", trace="none", col=col_RduBu, dendrogram="none", Colv="none", Rowv = "none")  
+
+#add the phylogenetic tree in the Adobe Illustrator 
+```
+
+#### Figure 1D. Heatmap of log2 (absolute abundance+1; cells mL-1) of cyanobacteria oligotypes from 2011-2013.
+```{r Figure_1D, fig.width=20, fig.height=12}
+#input data 
+coli <- read.csv("coligo by tree order.csv", row.names=1)
+#log transform the data
+coli_log <- log2(coli +1)
+
+#plot the figure
+heatmap.2(as.matrix(coli_log),  main = "Heatmap of cyano oligotypes (phylogeny)", xlab = "Samples", ylab = "oligotypes", cexCol =0.5,  cexRow = 0.5, keysize = 1, lhei = c(1,7),  key.xlab = "Log2 (absolute abundance+1), cells/mL", notecol="black", density.info="none", trace="none", col=col_RduBu, dendrogram="none", Colv="none",  Rowv = "none")  
+
+#add the phylogenetic tree in the Adobe Illustrator 
+```
+
+#### Figure 1F. Heatmap of log2 (absolute abundance+1; cells mL-1) of SAR11 OTUs from 2011-2013.
+```{r Figure_1F, fig.width=20, fig.height=12}
+#input data 
+sotu <- read.csv("sotu by tree order.csv", row.names=1)
+#log transform the data
+sotu_log <- log2(sotu +1)
+
+#plot the figure
+heatmap.2(as.matrix(sotu_log),main = "Heatmap of SAR11 OTUs (phylogeny)", xlab = "Samples",ylab = "OTUs", cexCol =0.5, cexRow = 0.5,keysize = 1,lhei = c(1,7),key.xlab = "Log2 (absolute abundance+1), cells/mL", notecol="black", density.info="none",  trace="none",col=col_RduBu,dendrogram="none",Colv="none",Rowv = "none")  
+
+#add the phylogenetic tree in the Adobe Illustrator 
+```
+
+#### Figure 1G. Heatmap of log2 (absolute abundance+1; cells mL-1) of SAR11 Oligotypes from 2011-2013.
+```{r Figure_1G, fig.width=20, fig.height=12}
+#input data 
+soli <- read.csv("soligo by tree order.csv", row.names=1)
+#log transform the data
+soli_log <- log2(soli+1)
+
+#plot the figure
+heatmap.2(as.matrix(soli_log),main = "Heatmap of SAR11 oligotypes (phylogeny)", xlab = "Samples",ylab = "oligotypes", cexCol =0.5, cexRow = 0.5,keysize = 1,lhei = c(1,7),key.xlab = "Log2 (absolute abundance+1), cells/mL", notecol="black", density.info="none",  trace="none",col=col_RduBu,dendrogram="none",Colv="none",Rowv = "none")  
+
+#add the phylogenetic tree in the Adobe Illustrator 
+```
+
+### Figure 2. Similarities of dominant marine communities at different time intervals.Mean Bray-Curtis dissimilarity of cyanobacteria and SAR11 communities at different phylogenetic resolutions vs. time lag up to a maximum of two years.
+```{r Figure_2}
+#input data 
+##lag BC data were calculated in Excels (cotu_lagBC_calculation.xlsx, coligo_lagBC_calculation.xlsx, sotu_lagBC_calculation.xlsx, soligo_lagBC_calculation.xlsx), then draw figures using R code list below. 
+cotu_BC <- read.csv("cotu lag BC.csv") 
+sotu_BC <- read.csv("sotu lag BC.csv") 
+coli_BC <- read.csv("coligo lag BC.csv")
+soli_BC <- read.csv("soligo lag BC.csv") 
+
+#format the data and select time lag to be two years
+cotu_BC$sd<-as.numeric(cotu_BC$sd)
+sotu_BC$sd<-as.numeric(sotu_BC$sd)
+soli_BC$sd<-as.numeric(soli_BC$sd)
+coli_BC$sd<-as.numeric(coli_BC$sd)
+
+sotu_BC$type<-c("SAR11 OTUs")
+cotu_BC$type<-c("Cyano OTUs")
+soli_BC$type<-c("SAR11 oligotypes")
+coli_BC$type<-c("Cyano oligotypes")
+
+cotu_BC<-cotu_BC[1:104,] #select time lag to be two years
+sotu_BC<-sotu_BC[1:104,]
+soli_BC<-soli_BC[1:104,]
+coli_BC<-coli_BC[1:104,]
+
+BC_otu<-rbind(sotu_BC,cotu_BC)
+BC_oligo<-rbind(soli_BC,coli_BC)
+BC<-rbind(BC_otu,BC_oligo) #data is ready for plotting
+
+#plot the figure
+ggplot(BC,aes(BC$ï..deltaweeks,average,group=type))+ geom_line(aes(shape=type,color=type))+
+  geom_point(aes(shape=type,color=type))+
+  scale_shape_manual(values = c(2,15,2,15)) + 
+  scale_size_manual(values=c(10,10,10,10))+
+  scale_colour_manual(values= c("dark green","dark green","black","black"))+
+  scale_linetype_manual(values=c("Cyano OTUs" = "solid","Cyano oligotypes" = "dashed","SAR11 OTUs" = "solid","SAR11 oligotypes" = "dashed"))+
+  labs(y="Average Bray-Curtis Dissimilarity values", x = "Lag (weeks)",color="")+ 
+  xlim(0, 104) + 
+  ylim(0.28, 0.71) + 
+  geom_vline(xintercept = 0, color = "black", size=0.5)+
+  geom_text(aes(x=9, label="", y=0.56), colour="black", angle=0, vjust = -1, text=element_text(size=11))+ 
+  geom_vline(xintercept = 52, color = "black", size=0.5)+ geom_text(aes(x=59, label="", y=0.56), colour="black", angle=0, vjust = -1, text=element_text(size=11))+ 
+  geom_vline(xintercept = 104, color = "black", size=0.5)+ geom_text(aes(x=111, label="", y=0.56), colour="black", angle=0, vjust = -1, text=element_text(size=11))+
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(),axis.line = element_line(colour = "black")
+  )+ 
+  labs(color  = "Guide name", linetype = "Guide name", shape = "Guide name")
+```
+
+### Figure 3. Heatmap and soft clustering of 161 cyanobacteria and 304 SAR11 oligotypes.
+```{r Figure_3_ClusterCentroid, fig.width=20, fig.height=12}
+#Run Soft clustering 
+
+#input data
+coli_part <- read.csv("161coligo by tree order.csv",header=TRUE,row.names=1) 
+soli_part <- read.csv("304soligo by tree order.csv",header=TRUE,row.names=1) 
+
+#Log2 transform
+coli_part_log <- log2(coli_part+1)
+soli_part_log <- log2(soli_part+1)
+
+# transform the data via min-max scaling method to let each row range from 0 to 1
+process_coli_part_log<- preProcess(t(coli_part_log), method=c("range"))
+process_soli_part_log<- preProcess(t(soli_part_log), method=c("range"))
+
+norm_scale_coli_part <- predict(process_coli_part_log, t(coli_part_log)) #each otu now is from 0-1
+norm_scale_soli_part <- predict(process_soli_part_log, t(soli_part_log)) #each otu now is from 0-1
+
+coli_part_final<-t(norm_scale_coli_part)
+soli_part_final<-t(norm_scale_soli_part)
+
+#format the table to expression set
+write.table(coli_part_final, file = "coli_data_final.txt", sep = "\t", row.names = TRUE, col.names = NA)
+write.table(soli_part_final, file = "soli_data_final.txt", sep = "\t", row.names = TRUE, col.names = NA)
+
+coli_mfuzz <- table2eset(file='coli_data_final.txt')
+soli_mfuzz <- table2eset(file='soli_data_final.txt')
+
+#standardise
+coli_mfuzz <- standardise(coli_mfuzz)
+soli_mfuzz <- standardise(soli_mfuzz)
+
+#### parameter selection6 fill.NA
+#for fuzzifier m, we could use Mestimate
+m_coli <- mestimate(coli_mfuzz)
+m_soli <- mestimate(soli_mfuzz)
+
+#A fuzzifier of 1 is essentially hard clustering.
+#Dmin(coli_mfuzz, m=m_coli, crange=seq(2,42,1), repeats=3, visu=TRUE)
+#Dmin(soli_mfuzz, m=m_soli, crange=seq(2,42,1), repeats=3, visu=TRUE)
+
+#based on the result, group data into 3 clusters
+clust=3
+
+coli_cluster <- mfuzz(coli_mfuzz, c=clust,m=m_coli)
+soli_cluster <- mfuzz(soli_mfuzz, c=clust,m=m_soli)
+#centers:soli_cluster[1] ; the cluster assignments: soli_cluster[3] ; and the membership scores:soli_cluster[4]
+
+#extracts cluster numbers and membership values 
+acore_coli <- acore(coli_mfuzz,coli_cluster,min.acore=0)
+acore_soli <- acore(soli_mfuzz,soli_cluster,min.acore=0)
+acore_list_coli <- do.call(rbind, lapply(seq_along(acore_coli), function(i){ data.frame(CLUSTER=i, acore_coli[[i]])}))
+acore_list_soli <- do.call(rbind, lapply(seq_along(acore_soli), function(i){ data.frame(CLUSTER=i, acore_soli[[i]])}))
+
+#export the above cluster information, then calculate the Centroid values in the Excels: "161coligo cluster centorid cal.xlsx" and 304soligo cluster centorid cal.xlsx"
+
+#input centroid data
+coli_centroid <- read.csv("161coligo cluster centroid.csv")
+colnames(coli_centroid)<-c("no","Date","Cluster 1","Cluster 2","Cluster 3")
+
+soli_centroid <- read.csv("304soligo cluster centroid.csv")
+colnames(soli_centroid)<-c("no","Date","Cluster 1","Cluster 2","Cluster 3")
+
+#generate centroid figure
+#Cyanobacteria
+ggplot(coli_centroid, aes(x=no)) + 
+  geom_line(aes(y = coli_centroid$`Cluster 1`,color="Cluster 1"),size=1,linetype ="dotted") + 
+  geom_line(aes(y = coli_centroid$`Cluster 2`,color="Cluster 2"),size=1,linetype = "dashed")+ 
+  geom_line(aes(y = coli_centroid$`Cluster 3`,color="Cluster 3"),size=1)+ 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  labs(y=" Cyano oligotypes Mfuzz cluster centroid of log2(abundance+1)", x = "Date",color="")+
+  scale_colour_manual(values = c("#0072B2","#D55E00","#009E73"))
+
+#SAR11
+ggplot(soli_centroid, aes(x=no)) + 
+  geom_line(aes(y = soli_centroid$`Cluster 1`,color="Cluster 1"),size=1,linetype ="dotted") + 
+  geom_line(aes(y = soli_centroid$`Cluster 2`,color="Cluster 2"),size=1,linetype = "dashed")+
+  geom_line(aes(y = soli_centroid$`Cluster 3`,color="Cluster 3"),size=1)+ 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  labs(y=" SAR11 oligotypes Mfuzz cluster centroid of log2(abundance+1)", x = "Date",color="")+
+  scale_colour_manual(values = c("#0072B2","#D55E00","#009E73"))
+
+# Figures were edited in the Adobe Illustrator 
+```
+
+```{r Figure_3_heatmaps, fig.width=20, fig.height=12}
+##data by tree order after log and min-max scaling: coli_part_final & soli_part_final
+#plot the heatmap of cyanobacteria 161 oligotypes 
+heatmap.2(as.matrix(coli_part_final), main = "Heatmap of Cyanobateria Oligotypes by tree order", xlab = "Samples",ylab = "Oligotypes",cexCol =0.6,cexRow = 0.8,keysize = 1,lhei = c(1,7),key.xlab = "min-max scaling [log2(abs abundance+1)]",notecol="black", density.info="none", trace="none", col=col_RduBu, dendrogram="none", Colv="none", Rowv = "none")  
+
+#plot the heatmap of SAR11 304 oligotypes 
+heatmap.2(as.matrix(soli_part_final),main = "Heatmap of SAR11 Oligotypes by tree order",xlab = "Samples",ylab = "Oligotypes",cexCol =0.6,cexRow = 0.8,keysize = 1,lhei = c(1,7),key.xlab = "min-max scaling [log2(abs abundance+1)]",notecol="black", density.info="none", trace="none", col=col_RduBu, dendrogram="none", Colv="none", Rowv = "none")  
+
+#clusters information and phylogenetic trees were added in the Adobe Illustrator
+```
+
+### Supplementary figures  
+
+### Figure S1:Seasonality of cyanobacteria and SAR11 communities at different phylogenetic resolutions. Redrawn from figure 1, with OTUs and oligotypes in rank order abundance.
+```{r Figure_S1_heatmaps, fig.width=20, fig.height=12}
+#Three Flow cytometric based abundances plots in Figure S1 were the same ones in Figure 1.See Figure 1 code.
+#rank order line charts were plotted in the Excels: cotu_by_rankorder.xlsx, coligo_by_rankorder.xlsx, sotu_by_rankorder.xlsx, soligo_by_rankorder.xlsx
+
+#input cyanobacteria data:cotu_log, coli_log 
+
+#input SAR11 data:sotu_log, soli_log 
+
+#order the rows by the sum values of each row, from highest to lowest
+cotu_log_order<-cotu_log[order(rowSums(cotu_log),decreasing=T),]
+coli_log_order<-coli_log[order(rowSums(coli_log),decreasing=T),]
+sotu_log_order<-sotu_log[order(rowSums(sotu_log),decreasing=T),]
+soli_log_order<-soli_log[order(rowSums(soli_log),decreasing=T),]
+
+#plot heatmaps
+heatmap.2(as.matrix(cotu_log_order),main = "Heatmap of Cyano OTUs (rankorder)", cexCol =0.5,cexRow = 0.5,keysize = 1,lhei = c(1,7), key.xlab = "Log2 (abs abundance+1)",notecol="black",density.info="none",trace="none", col=col_RduBu,dendrogram="none",Colv="none", Rowv = "none")  
+
+heatmap.2(as.matrix(coli_log_order),main = "Heatmap of Cyano Oligotypes (rankorder)", cexCol =0.5,cexRow = 0.5,keysize = 1,lhei = c(1,7), key.xlab = "Log2 (abs abundance+1)",notecol="black",density.info="none",trace="none", col=col_RduBu,dendrogram="none",Colv="none", Rowv = "none")  
+ 
+heatmap.2(as.matrix(sotu_log_order), main = "Heatmap of SAR11 OTUs (rankorder)", cexCol =0.5,cexRow = 0.5,keysize = 1,lhei = c(1,7), key.xlab = "Log2 (abs abundance+1)",notecol="black",density.info="none",trace="none", col=col_RduBu,dendrogram="none",Colv="none", Rowv = "none")  
+
+heatmap.2(as.matrix(soli_log_order), main = "Heatmap of SAR11 Oligotypes (rankorder)", cexCol =0.5,cexRow = 0.5,keysize = 1,lhei = c(1,7), key.xlab = "Log2 (abs abundance+1)",notecol="black",density.info="none",trace="none", col=col_RduBu,dendrogram="none",Colv="none", Rowv = "none")  
+```
+
+### Figurte S2: Shannon diversity, richness, and evenness of all Cyanobacteria and SAR11 OTUs.
+```{r Figure_S2_cyanobacteria}
+#get data ready: cyanobacteria OTUs absolute abundance tables: cotu
+cotu_2 <- t(cotu)
+
+cotu_3 <- tibble::rownames_to_column(as.data.frame(cotu_2), "sites")
+
+#calculate shannon diversity
+COTUshanno<-ddply(cotu_3,~cotu_3$sites,function(x) {
+         data.frame(SHANNON=diversity(x[-1], index="shannon"))
+ })
+COTUshanno_2 <- tibble::rownames_to_column(as.data.frame(COTUshanno), "no") 
+
+#calculate richness
+COTUrich<-ddply(cotu_3,~cotu_3$sites,function(x) {
+   data.frame(RICHNESS=sum(x[-1]>0))
+   })
+COTUrich_2 <- tibble::rownames_to_column(as.data.frame(COTUrich), "no") 
+
+#calculate evenness
+COTUeven<-ddply(cotu_3,~cotu_3$sites,function(x) {
+         data.frame(SIMPSON=diversity(x[-1], index="simpson")/log(sum(x[-1]>0)))
+ })
+COTUeven_2 <- tibble::rownames_to_column(as.data.frame(COTUeven), "no") 
+
+#plot figures
+#plot the shanno diversity figure
+plot(COTUshanno_2$no, COTUshanno_2$SHANNON, type = "b", col = "black",ylim = c(0,3),lty = 1, lwd = 1.3,cex.lab = 1.4, cex.axis = 1.3) 
+#plot the richness figure
+plot(COTUrich_2$no, COTUrich_2$RICHNESS, type = "b", col = "black",ylim = c(0,90),lty = 1, lwd = 1.3, cex.lab = 1.4,cex.axis = 1.3)
+#plot the evenness figure
+plot(COTUeven_2$no, COTUeven_2$SIMPSON, type = "b", col = "black", ylim = c(0,0.3),lty = 1, lwd = 1.3,cex.lab = 1.4,cex.axis = 1.3)
+
+#add year information in the Adobe Illustrator 
+```
+
+```{r Figure_S2_SAR11}
+#get data ready: SAR11 OTUs absolute abundance tables: sotu
+sotu_2 <- t(sotu)
+sotu_3 <- tibble::rownames_to_column(as.data.frame(sotu_2), "sites")
+SOTUshanno<-ddply(sotu_3,~sotu_3$sites,function(x) {
+         data.frame(SHANNON=diversity(x[-1], index="shannon"))
+ })
+SOTUshanno_2 <- tibble::rownames_to_column(as.data.frame(SOTUshanno), "no") 
+SOTUrich<-ddply(sotu_3,~sotu_3$sites,function(x) {
+   data.frame(RICHNESS=sum(x[-1]>0))
+   })
+SOTUrich_2 <- tibble::rownames_to_column(as.data.frame(SOTUrich), "no") 
+SOTUeven<-ddply(sotu_3,~sotu_3$sites,function(x) {
+         data.frame(SIMPSON=diversity(x[-1], index="simpson")/log(sum(x[-1]>0)))
+ })
+SOTUeven_2 <- tibble::rownames_to_column(as.data.frame(SOTUeven), "no") 
+
+plot(SOTUshanno_2$no, SOTUshanno_2$SHANNON, type = "b", col = "black",ylim = c(0,3), lty = 1, lwd = 1.3,cex.lab = 1.4,cex.axis = 1.3) 
+plot(SOTUrich_2$no, SOTUrich_2$RICHNESS, type = "b", col = "black", ylim = c(0,90),lty = 1, lwd = 1.3,cex.lab = 1.4,cex.axis = 1.3)
+plot(SOTUeven_2$no, SOTUeven_2$SIMPSON, type = "b",  col = "black", ylim = c(0,0.3),lty = 1, lwd = 1.3, cex.lab = 1.4, cex.axis = 1.3) 
+#add year information in the Adobe Illustrator 
+```
+
+### Figurte S3: Shannon diversity, richness, and evenness of all Cyanobacteria and SAR11 Oligotypes.
+```{r Figure_S3_cyanobacteria}
+#get data ready: cyanobacteria oligotypes absolute abundance tables: coli
+coli_2 <- t(coli)
+coli_3 <- tibble::rownames_to_column(as.data.frame(coli_2), "sites")
+
+COLIshanno<-ddply(coli_3,~coli_3$sites,function(x) {
+         data.frame(SHANNON=diversity(x[-1], index="shannon"))
+ })
+COLIshanno_2 <- tibble::rownames_to_column(as.data.frame(COLIshanno), "no") 
+COLIrich<-ddply(coli_3,~coli_3$sites,function(x) {
+   data.frame(RICHNESS=sum(x[-1]>0))
+   })
+COLIrich_2 <- tibble::rownames_to_column(as.data.frame(COLIrich), "no") 
+COLIeven<-ddply(coli_3,~coli_3$sites,function(x) {
+         data.frame(SIMPSON=diversity(x[-1], index="simpson")/log(sum(x[-1]>0)))
+ })
+COLIeven_2 <- tibble::rownames_to_column(as.data.frame(COLIeven), "no") 
+
+plot(COLIshanno_2$no, COLIshanno_2$SHANNON,type = "b", col = "black", ylim = c(0,5), lty = 1,  lwd = 1.3, cex.lab = 1.4,  cex.axis = 1.3) 
+plot(COLIrich_2$no, COLIrich_2$RICHNESS, type = "b", col = "black", ylim = c(0,200),lty = 1, lwd = 1.3, cex.lab = 1.4, cex.axis = 1.3) 
+plot(COLIeven_2$no, COLIeven_2$SIMPSON, type = "b", col = "black", ylim = c(0,0.3), lty = 1,lwd = 1.3, cex.lab = 1.4, cex.axis = 1.3)
+#add year information in the Adobe Illustrator 
+```
+
+```{r Figure_S3_SAR11}
+#get data ready: SAR11 oligotypes absolute abundance tables: soli
+soli_2 <- t(soli)
+soli_3 <- tibble::rownames_to_column(as.data.frame(soli_2), "sites")
+
+SOLIshanno<-ddply(soli_3,~soli_3$sites,function(x) {
+         data.frame(SHANNON=diversity(x[-1], index="shannon"))
+ })
+SOLIshanno_2 <- tibble::rownames_to_column(as.data.frame(SOLIshanno), "no") 
+SOLIrich<-ddply(soli_3,~soli_3$sites,function(x) {
+   data.frame(RICHNESS=sum(x[-1]>0))
+   })
+SOLIrich_2 <- tibble::rownames_to_column(as.data.frame(SOLIrich), "no") 
+SOLIeven<-ddply(soli_3,~soli_3$sites,function(x) {
+         data.frame(SIMPSON=diversity(x[-1], index="simpson")/log(sum(x[-1]>0)))
+ })
+SOLIeven_2 <- tibble::rownames_to_column(as.data.frame(SOLIeven), "no") 
+
+plot(SOLIshanno_2$no, SOLIshanno_2$SHANNON, type = "b", col = "black", ylim = c(0,5), lty = 1,  lwd = 1.3, cex.lab = 1.4, cex.axis = 1.3) 
+plot(SOLIrich_2$no, SOLIrich_2$RICHNESS,type = "b", col = "black",  ylim = c(0,450), lty = 1, lwd = 1.3, cex.lab = 1.4, cex.axis = 1.3) 
+plot(SOLIeven_2$no, SOLIeven_2$SIMPSON, type = "b", col = "black", ylim = c(0,0.3), lty = 1,  lwd = 1.3, cex.lab = 1.4, cex.axis = 1.3)
+#add year information in the Adobe Illustrator 
+```
+
+### Figure S4: Rank order absolute abundance of all cyanobacteria and SAR11 oligotypes.
+```{r Figure_S4_heatmap, fig.width=20, fig.height=12}
+#get data ready: combine cyanobacteria and SAR11 oligotypes data together 
+all_log<-rbind(coli_log, soli_log)
+
+#order the rows by the sum values of each row, from highest to lowest
+all_log_order<-all_log[order(rowSums(all_log),decreasing=T),]
+
+#plot the heatmap
+heatmap.2(as.matrix(all_log_order), main = "Heatmap of cyanobacteria and SAR11 Oligotypes (rankorder)", cexCol =0.5, cexRow = 0.5, keysize = 1, lhei = c(1,7), key.xlab = "Log2 (abs abundance+1)", notecol="black", density.info="none", trace="none", col=col_RduBu, dendrogram="none", Colv="none", Rowv = "none") 
+
+#the rank order line chart and a column of colors showing whether the oligotype is SAR11 or Cyanobacteria were plotted in the Excel: together-oligo-by rank order.xlsx
+#Plots were combined in the Adobe Illustrator 
+```
+
+### Figure S5: Canonical correspondence analysis (CCA) of cyanobacteria and SAR11 communities at different phylogenetic resolutions.
+```{r Figure_S5_CCA_cyano OTUs, fig.width=10, fig.height=8}
+#input data: cotu
+cotu_t<-t(cotu)
+#prep meta data
+meta <- read.csv("environmental data.csv", header = T)
+# predictor variables
+fixed <- meta[,3:9]
+row.names(fixed)<-row.names(cotu_t)
+
+#Canonincal correspondence analysis (CCA)
+cotu.cca <- cca(cotu_t ~ Temp +  MLLW + Salinity + Chlorophyll.a +  NH4 + InsolationProjectedDaily, data=fixed)
+
+#compute variance inflation factors (VIF) to check for redundancy in the predictor variables.
+vif.cca(cotu.cca) 
+#all of our VIFs are now reasonable.
+
+#visualize
+cotu_cca <- summary(cotu.cca)
+
+cotu_cca_pr.site <- data.frame(cotu_cca$sites)[1:2]
+cotu_cca_pr.site$name <- rownames(cotu_cca_pr.site)
+cotu_cca_pr.site$yearday <- meta$YearDay
+
+cotu_cca_pr.env <- data.frame(cotu_cca$biplot)[1:2]
+cotu_cca_pr.env$name <- rownames(cotu_cca_pr.env)
+
+cotu_cca1_varex<-round(summary(cotu.cca)$cont$importance[2,1]*100,2) #Get percentage of variance explained by first axis
+cotu_cca2_varex<-round(summary(cotu.cca)$cont$importance[2,2]*100,2) #Get percentage of variance explained by second axis
+
+#CCA plots
+ggplot(cotu_cca_pr.site, aes(CCA1, CCA2)) +
+  geom_point(aes(color = yearday), alpha = 0.4, size = 2) +
+  scale_color_gradient2(low = "red", mid = "darkblue", high = "yellow", midpoint = mean(cotu_cca_pr.site$yearday))+ 
+  ylim(-6, 4) +
+  xlim(-6, 4) + 
+  geom_vline(xintercept = 0, color = 'gray', size = 0.5) +
+  geom_hline(yintercept = 0, color = 'gray', size = 0.5) +
+  coord_fixed()+
+  geom_segment(data=cotu_cca_pr.env,aes(x=0,xend=CCA1*2.5,y=0,yend=CCA2*2.5),color="black",arrow=arrow(length=unit(0.02,"npc")),) +
+  geom_text(data=cotu_cca_pr.env,aes(x=CCA1*2.5,y=CCA2*2.5,label=rownames(cotu_cca_pr.env),hjust=0.5*(1-sign(CCA1)),vjust=0.5*(1-sign(CCA2))),color="black") +
+  theme_bw() +
+  labs(x=paste0("CCA1 (",cotu_cca1_varex," %)"),
+       y=paste0("CCA2 (",cotu_cca2_varex," %)")) 
+  
+#edit figures in the Adobe Illustrator 
+```
+
+```{r Figure_S5_CCA_cyano Oligotypes, fig.width=10, fig.height=8}
+#input data: coli
+coli_t<-t(coli)
+#Canonincal correspondence analysis (CCA)
+coli.cca <- cca(coli_t ~ Temp +  MLLW + Salinity + Chlorophyll.a +  NH4 + InsolationProjectedDaily, data=fixed)
+#compute variance inflation factors (VIF) to check for redundancy in the predictor variables.
+vif.cca(coli.cca) 
+#all of our VIFs are now reasonable.
+#visualize
+coli_cca <- summary(coli.cca)
+coli_cca_pr.site <- data.frame(coli_cca$sites)[1:2]
+coli_cca_pr.site$name <- rownames(coli_cca_pr.site)
+coli_cca_pr.site$yearday <- meta$YearDay
+coli_cca_pr.site$CCA2<-coli_cca_pr.site$CCA2*(-1)
+coli_cca_pr.env <- data.frame(coli_cca$biplot)[1:2]
+coli_cca_pr.env$name <- rownames(coli_cca_pr.env)
+coli_cca_pr.env$CCA2<-coli_cca_pr.env$CCA2*(-1)
+coli_cca1_varex<-round(summary(coli.cca)$cont$importance[2,1]*100,2)
+coli_cca2_varex<-round(summary(coli.cca)$cont$importance[2,2]*100,2) 
+#CCA plots
+ggplot(coli_cca_pr.site, aes(CCA1, CCA2)) +
+  geom_point(aes(color = yearday), alpha = 0.4, size = 2) +
+  scale_color_gradient2(low = "red", mid = "darkblue", high = "yellow", midpoint = mean(coli_cca_pr.site$yearday))+ 
+  ylim(-6, 4) +
+  xlim(-6, 4) + 
+  geom_vline(xintercept = 0, color = 'gray', size = 0.5) +
+  geom_hline(yintercept = 0, color = 'gray', size = 0.5) +
+  coord_fixed()+
+  geom_segment(data=coli_cca_pr.env,aes(x=0,xend=CCA1*2.5,y=0,yend=CCA2*2.5),color="black",arrow=arrow(length=unit(0.02,"npc")),) +
+  geom_text(data=coli_cca_pr.env,aes(x=CCA1*2.5,y=CCA2*2.5,label=rownames(coli_cca_pr.env),hjust=0.5*(1-sign(CCA1)),vjust=0.5*(1-sign(CCA2))),color="black") +
+  theme_bw() +
+  labs(x=paste0("CCA1 (",coli_cca1_varex," %)"),
+       y=paste0("CCA2 (",coli_cca2_varex," %)")) 
+#edit figures in the Adobe Illustrator 
+```
+
+```{r Figure_S5_CCA_SAR11 OTUs, fig.width=10, fig.height=8}
+#input data: sotu
+sotu_t<-t(sotu)
+#Canonincal correspondence analysis (CCA)
+sotu.cca <- cca(sotu_t ~ Temp +  MLLW + Salinity + Chlorophyll.a +  NH4 + InsolationProjectedDaily, data=fixed)
+#compute variance inflation factors (VIF) to check for redundancy in the predictor variables.
+vif.cca(sotu.cca) 
+#all of our VIFs are now reasonable.
+#visualize
+sotu_cca <- summary(sotu.cca)
+sotu_cca_pr.site <- data.frame(sotu_cca$sites)[1:2]
+sotu_cca_pr.site$name <- rownames(sotu_cca_pr.site)
+sotu_cca_pr.site$yearday <- meta$YearDay
+sotu_cca_pr.site$CCA2<-sotu_cca_pr.site$CCA2*(-1)
+sotu_cca_pr.site$CCA1<-sotu_cca_pr.site$CCA1*(-1)
+sotu_cca_pr.env <- data.frame(sotu_cca$biplot)[1:2]
+sotu_cca_pr.env$name <- rownames(sotu_cca_pr.env)
+sotu_cca_pr.env$CCA2<-sotu_cca_pr.env$CCA2*(-1)
+sotu_cca_pr.env$CCA1<-sotu_cca_pr.env$CCA1*(-1)
+sotu_cca1_varex<-round(summary(sotu.cca)$cont$importance[2,1]*100,2) 
+sotu_cca2_varex<-round(summary(sotu.cca)$cont$importance[2,2]*100,2) 
+#CCA plots
+#library(ggplot2)
+ggplot(sotu_cca_pr.site, aes(CCA1, CCA2)) +
+  geom_point(aes(color = yearday), alpha = 0.4, size = 2) +
+  scale_color_gradient2(low = "red", mid = "darkblue", high = "yellow", midpoint = mean(sotu_cca_pr.site$yearday))+ 
+  ylim(-6, 4) +
+  xlim(-6, 4) + 
+  geom_vline(xintercept = 0, color = 'gray', size = 0.5) +
+  geom_hline(yintercept = 0, color = 'gray', size = 0.5) +
+  coord_fixed()+
+  geom_segment(data=sotu_cca_pr.env,aes(x=0,xend=CCA1*2.5,y=0,yend=CCA2*2.5),color="black",arrow=arrow(length=unit(0.02,"npc")),) +
+  geom_text(data=sotu_cca_pr.env,aes(x=CCA1*2.5,y=CCA2*2.5,label=rownames(sotu_cca_pr.env),hjust=0.5*(1-sign(CCA1)),vjust=0.5*(1-sign(CCA2))),color="black") +
+  theme_bw() +
+  labs(x=paste0("CCA1 (",sotu_cca1_varex," %)"),
+       y=paste0("CCA2 (",sotu_cca2_varex," %)")) 
+#edit figures in the Adobe Illustrator 
+```
+
+```{r Figure_S5_CCA_SAR11 oligotypes, fig.width=10, fig.height=8}
+#input data: soli
+soli_t<-t(soli)
+#Canonincal correspondence analysis (CCA)
+soli.cca <- cca(soli_t ~ Temp +  MLLW + Salinity + Chlorophyll.a +  NH4 + InsolationProjectedDaily, data=fixed)
+#compute variance inflation factors (VIF) to check for redundancy in the predictor variables.
+vif.cca(soli.cca) 
+#all of our VIFs are now reasonable.
+#visualize
+soli_cca <- summary(soli.cca)
+soli_cca_pr.site <- data.frame(soli_cca$sites)[1:2]
+soli_cca_pr.site$name <- rownames(soli_cca_pr.site)
+soli_cca_pr.site$yearday <- meta$YearDay
+soli_cca_pr.env <- data.frame(soli_cca$biplot)[1:2]
+soli_cca_pr.env$name <- rownames(soli_cca_pr.env)
+soli_cca1_varex<-round(summary(soli.cca)$cont$importance[2,1]*100,2) 
+soli_cca2_varex<-round(summary(soli.cca)$cont$importance[2,2]*100,2) 
+#CCA plots
+ggplot(soli_cca_pr.site, aes(CCA1, CCA2)) +
+  geom_point(aes(color = yearday), alpha = 0.4, size = 2) +
+  scale_color_gradient2(low = "red", mid = "darkblue", high = "yellow", midpoint = mean(soli_cca_pr.site$yearday))+ 
+  ylim(-6, 4) +
+  xlim(-6, 4) + 
+  geom_vline(xintercept = 0, color = 'gray', size = 0.5) +
+  geom_hline(yintercept = 0, color = 'gray', size = 0.5) +
+  coord_fixed()+
+  geom_segment(data=soli_cca_pr.env,aes(x=0,xend=CCA1*2.5,y=0,yend=CCA2*2.5),color="black",arrow=arrow(length=unit(0.02,"npc")),) +
+  geom_text(data=soli_cca_pr.env,aes(x=CCA1*2.5,y=CCA2*2.5,label=rownames(soli_cca_pr.env),hjust=0.5*(1-sign(CCA1)),vjust=0.5*(1-sign(CCA2))),color="black") +
+  theme_bw() +
+  labs(x=paste0("CCA1 (",soli_cca1_varex," %)"),
+       y=paste0("CCA2 (",soli_cca2_varex," %)")) 
+#edit figures in the Adobe Illustrator 
+```
+
+### Figure S6: Rank order abundance of 161 cyanobacteria and 304 SAR11 oligotypes within each soft clustering cluster.
+```{r Figure_S6, fig.width=30, fig.height=20}
+#input data: oligotypes ranked by cluster and rank order
+coli_cluster_rank <- read.csv("161coligo cluster rank order.csv",header=TRUE,row.names=1) 
+soli_cluster_rank <- read.csv("304soligo cluster rank order.csv",header=TRUE,row.names=1) 
+
+#min-max scaling [log2(absolute abundance+1)]
+coli_cluster_rank_log <- log2(coli_cluster_rank+1)
+soli_cluster_rank_log <- log2(soli_cluster_rank+1)
+
+process_coli_cluster_rank_log <- preProcess(t(coli_cluster_rank_log), method=c("range"))
+process_soli_cluster_rank_log <- preProcess(t(soli_cluster_rank_log), method=c("range"))
+
+norm_coli_cluster_rank_log <- predict(process_coli_cluster_rank_log, t(coli_cluster_rank_log)) #each otu now is from 0-1
+norm_soli_cluster_rank_log <- predict(process_soli_cluster_rank_log, t(soli_cluster_rank_log)) #each otu now is from 0-1
+
+coli_cluster_rank_log_2<-t(norm_coli_cluster_rank_log)
+soli_cluster_rank_log_2<-t(norm_soli_cluster_rank_log)
+
+heatmap.2(as.matrix(coli_cluster_rank_log_2), main = "Heatmap of Cyanobateria Oligotypes", xlab = "Samples", ylab = "Oligotypes", cexCol =0.6, cexRow = 0.8, keysize = 1, lhei = c(1,7), key.xlab = "min-max scaling [log2(abs abundance+1)]", notecol="black", density.info="none", trace="none", col=col_RduBu, dendrogram="none", Colv="none", Rowv = "none") 
+
+heatmap.2(as.matrix(soli_cluster_rank_log_2), main = "Heatmap of SAR11 Oligotypes", xlab = "Samples", ylab = "Oligotypes", cexCol =0.6, cexRow = 0.8, keysize = 1, lhei = c(1,7), key.xlab = "min-max scaling [log2(abs abundance+1)]", notecol="black", density.info="none", trace="none", col=col_RduBu, dendrogram="none", Colv="none", Rowv = "none") 
+
+#edit figures in the Adobe Illustrator
+```
+
+### Figure s7: Soft clustering of the 25 cyanobacteria and 37 SAR11 OTUs.
+```{r Figure_S7_ClusterCentroid, fig.width=20, fig.height=12}
+#Run Soft clustering 
+
+#input data
+cotu_part <- read.csv("25cotu by tree order.csv",header=TRUE,row.names=1) 
+sotu_part <- read.csv("37sotu by tree order.csv",header=TRUE,row.names=1) 
+
+#Log2 transform
+cotu_part_log <- log2(cotu_part+1)
+sotu_part_log <- log2(sotu_part+1)
+
+# transform the data via min-max scaling method to let each row range from 0 to 1
+library(caret) #for doing the min-max scaling
+process_cotu_part_log<- preProcess(t(cotu_part_log), method=c("range"))
+process_sotu_part_log<- preProcess(t(sotu_part_log), method=c("range"))
+
+norm_scale_cotu_part <- predict(process_cotu_part_log, t(cotu_part_log)) #each otu now is from 0-1
+norm_scale_sotu_part <- predict(process_sotu_part_log, t(sotu_part_log)) #each otu now is from 0-1
+
+cotu_part_final<-t(norm_scale_cotu_part)
+sotu_part_final<-t(norm_scale_sotu_part)
+
+#format the table to expression set
+write.table(cotu_part_final, file = "cotu_data_final.txt", sep = "\t", row.names = TRUE, col.names = NA)
+write.table(sotu_part_final, file = "sotu_data_final.txt", sep = "\t", row.names = TRUE, col.names = NA)
+
+cotu_mfuzz <- table2eset(file='cotu_data_final.txt')
+sotu_mfuzz <- table2eset(file='sotu_data_final.txt')
+
+#standardise
+cotu_mfuzz <- standardise(cotu_mfuzz)
+sotu_mfuzz <- standardise(sotu_mfuzz)
+
+#### parameter selection6 fill.NA
+#for fuzzifier m, we could use Mestimate
+m_cotu <- mestimate(cotu_mfuzz)
+m_sotu <- mestimate(sotu_mfuzz)
+
+#A fuzzifier of 1 is essentially hard clustering.
+#Dmin(cotu_mfuzz, m=m_cotu, crange=seq(2,25,1), repeats=3, visu=TRUE)
+#Dmin(sotu_mfuzz, m=m_sotu, crange=seq(2,37,1), repeats=3, visu=TRUE)
+
+#based on the result, group data into 3 clusters
+clust=3
+
+cotu_cluster <- mfuzz(cotu_mfuzz, c=clust,m=m_cotu)
+sotu_cluster <- mfuzz(sotu_mfuzz, c=clust,m=m_sotu)
+#centers:sotu_cluster[1] ; the cluster assignments: sotu_cluster[3] ; and the membership scores:sotu_cluster[4]
+
+#extracts cluster numbers and membership values 
+acore_cotu <- acore(cotu_mfuzz,cotu_cluster,min.acore=0)
+acore_sotu <- acore(sotu_mfuzz,sotu_cluster,min.acore=0)
+acore_list_cotu <- do.call(rbind, lapply(seq_along(acore_cotu), function(i){ data.frame(CLUSTER=i, acore_cotu[[i]])}))
+acore_list_sotu <- do.call(rbind, lapply(seq_along(acore_sotu), function(i){ data.frame(CLUSTER=i, acore_sotu[[i]])}))
+#Save the above cluster data, then calculate the Centroid values in the Excels: "25cotu cluster centorid cal.xlsx" and 37sotu cluster centorid cal.xlsx"
+
+#input centroid data
+cotu_centroid <- read.csv("25cotu cluster centroid.csv")
+colnames(cotu_centroid)<-c("no","Date","Cluster 1","Cluster 2","Cluster 3")
+
+sotu_centroid <- read.csv("37sotu cluster centroid.csv")
+colnames(sotu_centroid)<-c("no","Date","Cluster 1","Cluster 2","Cluster 3")
+
+#generate centroid figures
+#Cyanobacteria
+ggplot(cotu_centroid, aes(x=no)) + 
+  geom_line(aes(y = cotu_centroid$`Cluster 1`,color="Cluster 1"),size=1,linetype ="dotted") + 
+  geom_line(aes(y = cotu_centroid$`Cluster 2`,color="Cluster 2"),size=1,linetype = "dashed")+ 
+  geom_line(aes(y = cotu_centroid$`Cluster 3`,color="Cluster 3"),size=1)+ 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  labs(y=" Cyano otus Mfuzz cluster centroid of log2(abundance+1)", x = "Date",color="")+
+  scale_colour_manual(values = c("#0072B2","#D55E00","#009E73"))
+
+#SAR11
+ggplot(sotu_centroid, aes(x=no)) + 
+  geom_line(aes(y = sotu_centroid$`Cluster 1`,color="Cluster 1"),size=1,linetype ="dotted") + 
+  geom_line(aes(y = sotu_centroid$`Cluster 2`,color="Cluster 2"),size=1,linetype = "dashed")+
+  geom_line(aes(y = sotu_centroid$`Cluster 3`,color="Cluster 3"),size=1)+ 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  labs(y=" SAR11 otus Mfuzz cluster centroid of log2(abundance+1)", x = "Date",color="")+
+  scale_colour_manual(values = c("#0072B2","#D55E00","#009E73"))
+
+# Figures were edited in the Adobe Illustrator 
+```
+
+```{r Figure_S7_heatmaps by tree order, fig.width=30, fig.height=20}
+##data by tree order after log and min-max scaling: cotu_part_final & sotu_part_final
+
+#plot the heatmap of cyanobacteria 25 OTUs
+heatmap.2(as.matrix(cotu_part_final), main = "Heatmap of Cyanobateria OTUs by tree order", xlab = "Samples",ylab = "OTUs",cexCol =0.6,cexRow = 0.8,keysize = 1,lhei = c(1,7),key.xlab = "min-max scaling [log2(abs abundance+1)]",notecol="black", density.info="none", trace="none", col=col_RduBu, dendrogram="none", Colv="none", Rowv = "none")  
+
+#plot the heatmap of SAR11 37 OTUs
+heatmap.2(as.matrix(sotu_part_final),main = "Heatmap of SAR11 OTUs by tree order",xlab = "Samples",ylab = "OTUs",cexCol =0.6,cexRow = 0.8,keysize = 1,lhei = c(1,7),key.xlab = "min-max scaling [log2(abs abundance+1)]",notecol="black", density.info="none", trace="none", col=col_RduBu, dendrogram="none", Colv="none", Rowv = "none")  
+
+#clusters information and phylogenetic trees were added in the Adobe Illustrator
+```
+
+```{r Figure_S7_heatmaps by tcluster and rank order, fig.width=30, fig.height=20}
+#input data: OTUs ranked by cluster and rank order
+cotu_cluster_rank <- read.csv("25cotu cluster rank order.csv",header=TRUE,row.names=1) 
+sotu_cluster_rank <- read.csv("37sotu cluster rank order.csv",header=TRUE,row.names=1) 
+
+#min-max scaling [log2(absolute abundance+1)]
+cotu_cluster_rank_log <- log2(cotu_cluster_rank+1)
+sotu_cluster_rank_log <- log2(sotu_cluster_rank+1)
+
+process_cotu_cluster_rank_log <- preProcess(t(cotu_cluster_rank_log), method=c("range"))
+process_sotu_cluster_rank_log <- preProcess(t(sotu_cluster_rank_log), method=c("range"))
+
+norm_cotu_cluster_rank_log <- predict(process_cotu_cluster_rank_log, t(cotu_cluster_rank_log)) #each otu now is from 0-1
+norm_sotu_cluster_rank_log <- predict(process_sotu_cluster_rank_log, t(sotu_cluster_rank_log)) #each otu now is from 0-1
+
+cotu_cluster_rank_log_2<-t(norm_cotu_cluster_rank_log)
+sotu_cluster_rank_log_2<-t(norm_sotu_cluster_rank_log)
+
+heatmap.2(as.matrix(cotu_cluster_rank_log_2), main = "Heatmap of Cyanobateria OTUs", xlab = "Samples", ylab = "OTUs", cexCol =0.6, cexRow = 0.8, keysize = 1, lhei = c(1,7), key.xlab = "min-max scaling [log2(abs abundance+1)]", notecol="black", density.info="none", trace="none", col=col_RduBu, dendrogram="none", Colv="none", Rowv = "none") 
+
+heatmap.2(as.matrix(sotu_cluster_rank_log_2), main = "Heatmap of SAR11 OTUs", xlab = "Samples", ylab = "OTUs", cexCol =0.6, cexRow = 0.8, keysize = 1, lhei = c(1,7), key.xlab = "min-max scaling [log2(abs abundance+1)]", notecol="black", density.info="none", trace="none", col=col_RduBu, dendrogram="none", Colv="none", Rowv = "none") 
+
+#edit figures in the Adobe Illustrator
+```
+
+```{r Figure_S7_heatmaps by cluster and rank order, fig.width=30, fig.height=20}
+##data by tree order after log and min-max scaling: cotu_part_final & sotu_part_final
+
+#plot the heatmap of cyanobacteria 25 OTUs
+heatmap.2(as.matrix(cotu_part_final), main = "Heatmap of Cyanobateria OTUs by tree order", xlab = "Samples",ylab = "OTUs",cexCol =0.6,cexRow = 0.8,keysize = 1,lhei = c(1,7),key.xlab = "min-max scaling [log2(abs abundance+1)]",notecol="black", density.info="none", trace="none", col=col_RduBu, dendrogram="none", Colv="none", Rowv = "none")  
+
+#plot the heatmap of SAR11 37 OTUs
+heatmap.2(as.matrix(sotu_part_final),main = "Heatmap of SAR11 OTUs by tree order",xlab = "Samples",ylab = "OTUs",cexCol =0.6,cexRow = 0.8,keysize = 1,lhei = c(1,7),key.xlab = "min-max scaling [log2(abs abundance+1)]",notecol="black", density.info="none", trace="none", col=col_RduBu, dendrogram="none", Colv="none", Rowv = "none")  
+
+#clusters information and phylogenetic trees were added in the Adobe Illustrator
+```
+
+### Figurte S8: Relative abundance of two most abundant OTUs within the cyanobacteria (OTU229 and OTU3533). #### See the excel file "FigS8 data.xlsx".
+
+### Figurte S9: Mantel correlogram between the pairwise correlation matrix of cyanobacteria and SAR11 oligotypes absolute abundance and phylogenetic distances.
+```{r echo=T, results='hide'}
+#input the representative sequence data of all cyanobacteria oligotypes 
+coli_seq <- read.dna(file = "coligo aligned rep seq.fasta", format = "fasta")
+as.character(coli_seq)
+coli_seq_dist<- dist.dna(coli_seq, model = "TN93")
+
+#get the log2 transformed cyanobacteria oligotype absolute abundance data
+coli_abun<- read.csv("coligo absolute abun.csv",row.names = 1)
+coli_abun2 <- log2(t(coli_abun)+1)
+
+#calculate the correlation matrix of cyanobacteria oligotypes log2 transformed absolute abundance data
+coli_correlation <- cor(coli_abun2)
+round(coli_correlation ,2)
+```
+
+```{r Figure_S9_mantel correlogram_cyano oligotypes}
+#Mantel correlogram of cyanobacteria oligotypes 
+#cyano_mantel <- mantel(coli_correlation, coli_seq_dist, method = "spearman", permutations = 9999, na.rm = TRUE)
+cyano_mgram <- mantel.correlog(coli_correlation, coli_seq_dist, XY=NULL, n.class=0, break.pts=NULL, 
+cutoff=TRUE, r.type="spearman", nperm=999, mult="holm", progressive=TRUE)
+plot(cyano_mgram, alpha=0.05)
+```
+
+```{r echo=T, results='hide'}
+#same process to SAR11 oligotypes to get their mantel correlogram
+soli_seq <- read.dna(file = "soligo aligned rep seq.fasta", format = "fasta")
+as.character(soli_seq)
+soli_seq_dist<- dist.dna(soli_seq, model = "TN93")
+
+soli_abun<- read.csv("soligo absolute abun.csv",row.names = 1)
+soli_abun2 <- log2(t(soli_abun)+1)
+
+soli_correlation <- cor(soli_abun2)
+round(soli_correlation ,2)
+```
+
+```{r Figure_S9_mantel correlogram_SAR11 oligotypes}
+sar11_mgram <- mantel.correlog(soli_correlation, soli_seq_dist, XY=NULL, n.class=0, break.pts=NULL, 
+cutoff=TRUE, r.type="spearman", nperm=999, mult="holm", progressive=TRUE)
+plot(sar11_mgram, alpha=0.05)
+```
+
+### End
